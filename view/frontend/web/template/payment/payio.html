@@ -1,0 +1,35 @@
+<div class="payment-method" data-bind="css: {'_active': (getCode() == isChecked())}">
+    <div class="payment-method-title field choice">
+        <input type="radio"
+               name="payment[method]"
+               class="radio"
+               data-bind="attr: {'id': getCode()}, value: getCode(), checked: isChecked, click: selectPaymentMethod, visible: isRadioButtonVisible()"/>
+        <!-- TODO switch out to payio hosted image-->
+        <label data-bind="attr: {'for': getCode()}" class="label">
+            <img id="payio-icon" class="payment-icon" data-bind="attr: { src: require.toUrl('PayioLtd_Payio/images/payio-fast-checkout.png'), alt: 'payio-fast-checkout'}">
+            <span data-bind="text: getTitle()"></span><span>, For more information visit <a href="https://www.payio.co.uk" target="_blank">Payio.co.uk</a></span></label>
+
+
+    </div>
+    <div class="payment-method-content">
+        <div class="actions-toolbar">
+            <div id="payio-button-checkout">
+                <button class="action checkout"
+                type="submit"
+                data-bind="click: initiateCheckoutSession">
+                    <img data-bind="attr: { src: require.toUrl('PayioLtd_Payio/images/payio-inline.png'), alt: 'payio-inline'}">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainmessages" >
+        <div class="messages">
+            <div class="message message-error error" style="display: none;">
+                <div data-ui-id="messages-message-error">
+                    <span class="message-text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

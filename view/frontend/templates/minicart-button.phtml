@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @var \PayioLtd\Payio\Block\Shortcut\Button $block
+ */
+try {
+    $id = sprintf('%s%s', $block->getContainerId(), random_int(PHP_INT_MIN, PHP_INT_MAX));
+    $quote_id = sprintf('%s%s', $block->getContainerDataId(), $block->getQuoteId());
+} catch (Exception $e) {
+    /**
+     * Exception only thrown if an appropriate source of randomness cannot be found.
+     * https://www.php.net/manual/en/function.random-int.php
+     */
+    $id = 0;
+}
+
+$config = [
+    'PayioLtd_Payio/js/view/payment/payioexpress' => [
+        'id' => $id,
+        'quoteId' => $block->getQuoteId(),
+        'apiKey' => $block->getApiKey(),
+        'gatewayPath' => $block->getGatewayPath(),
+        'apiTransactionPath' => $block->getApiTransactionPath(),
+        'checkoutUrl' => $block->getCheckoutUrl(),
+        'paymentSuccessUrl' => $block->getPaymentSuccessUrl(),
+    ]
+];
+
+?>
+
+<link rel="stylesheet" type="text/css" href="<?= $block->getViewFileUrl('PayioLtd_Payio::css/payio.css') ?>">
+
+<div id="<?= $block->escapeHtmlAttr($id) ?>" class="payio-button payio-minicart <?= $block->escapeHtmlAttr($block->getExtraClassname()) ?>">
+    <button id="initiateCheckoutSession" type="submit" data-id="<?= $block->escapeHtmlAttr($quote_id) ?>" class="action checkout" data-mage-init="<?= $block->escapeHtmlAttr(json_encode($config)) ?>">
+        <img src="<?= $block->getViewFileUrl('PayioLtd_Payio::images/payio-inline.png'); ?>" alt="payio-inline">
+    </button>
+    <div>Faster checkout, more secure</div>
+</div>
+
+<div id="minimessages">
+    <div class="messages">
+        <div class="message message-error error" style="display: none;">
+            <div data-ui-id="messages-message-error">
+                <span class="message-text"></span>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+.payio-minicart button {
+    background-color: #612775;
+    color: #ffffff;
+    display: block;
+    width: 100%;
+    border-radius: 5px;
+    margin-top: 20px;
+    padding: 12px 40px 10px 40px;
+}
+
+.payio-minicart img {
+    width: auto;
+    display: block;
+}
+
+.payio-minicart div {
+    font-size: small;
+    color: #612775;
+    font-style: italic;
+    font-family: "Montserrat", sans-serif;
+    text-align: center;
+    padding-top: 5px;
+}
+
+#payio-icon {
+    border: 1px solid #cccccc;
+    padding: 5px;
+    width: 70px;
+}
+
+#payio-button-checkout button {
+    background-color: #612775;
+    color: #ffffff;
+    display: block;
+    width: 100%;
+    padding-top: 10px;
+    border-radius: 5px;
+}
+
+#payio-button-checkout img {
+    width: auto;
+}

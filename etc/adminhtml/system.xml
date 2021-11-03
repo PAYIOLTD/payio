@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../Config/etc/system_file.xsd">
+    <system>
+        <section id="payment">
+            <group id="payio" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Pay iO</label>
+                 <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+
+                <field id="test_mode" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Test Mode</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="title" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Title</label>
+                </field>
+                <field id="instructions" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Instructions</label>
+                </field>
+                <field id="express_checkout" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Express Checkout</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>payment/payio/express_checkout</config_path>
+                </field>
+                <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="0">
+                <label>Sort Order</label>
+                    <frontend_class>validate-number</frontend_class>
+                </field>
+                <group id="integration" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Integration</label>
+                    <!-- Integration settings -->
+                    <field id="api_key" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>API Key</label>
+                        <comment><![CDATA[Get your key from your Pay iO portal <a target="_blank" href="https://secure.payio.co.uk/portal/dashboard/integration"> Integration page</a>]]></comment>
+                    </field>
+                </group>
+                <group id="design" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Design</label>
+                    <!-- Design settings -->
+                    <field id="logo" translate="label" type="image" sortOrder="15" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>Logo image</label>
+                        <backend_model>PayioLtd\Payio\Model\Config\Backend\Image</backend_model>
+                        <base_url type="media" scope_info="1">payments/logo</base_url>
+                        <comment><![CDATA[Allowed file types: jpg, jpeg, gif, png, svg]]></comment>
+                    </field>
+                    <field id="logo_alt" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>Logo image alternative</label>
+                    </field>
+                    <field id="brand_color" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>Brand Colour</label>
+                        <comment><![CDATA[Exampe: #0022CC]]></comment>
+                        <frontend_model>PayioLtd\Payio\Block\Color</frontend_model>
+                    </field>
+                </group>
+            </group>
+            <!-- payment-group -->
+        </section>
+    </system>
+</config>
