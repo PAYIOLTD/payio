@@ -34,23 +34,31 @@ class Data extends AbstractHelper
     protected $cart;
 
     /**
+     * @var \Magento\Shipping\Model\Config $shipconfig
+     */
+    protected $shipconfig;
+
+    /**
      * Data constructor.
      *
      * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param RateFactory $rateFactory
      * @param \Magento\Checkout\Model\Cart $cart,
+     * @param \Magento\Shipping\Model\Config $shipconfig
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         RateFactory $rateFactory,
-        \Magento\Checkout\Model\Cart $cart
+        \Magento\Checkout\Model\Cart $cart,
+        \Magento\Shipping\Model\Config $shipconfig
     ) {
         parent::__construct($context);
         $this->storeManager = $storeManager;
         $this->rateFactory = $rateFactory;
         $this->cart = $cart;
+        $this->shipconfig = $shipconfig;
     }
 
     /**
@@ -80,6 +88,38 @@ class Data extends AbstractHelper
             }
         }
         return $getUKTaxAmount;
+    }
+
+    /**
+     * Retrieve all shipping method.
+     *
+     * @return array
+     */
+    public function getActiveShippingMethods()
+    {
+        $activeCarriers = $this->shipconfig->getActiveCarriers();
+        $methods = [];
+        foreach ($activeCarriers as $carrierCode => $carrierModel) {
+
+            if ($carrierMethods = $carrierModel->getAllowedMethods()) {
+                foreach ($carrierMethods as $methodCode => $method) {
+                    $code = $carrierCode . '_' . $methodCode;
+                    $carrierTitle = $this->scopeConfig->getValue('carriers/' . $carrierCode . '/title');
+                    $cost = $this->scopeConfig->getValue('carriers/' . $carrierCode . '/price');
+                    $allowSpecific = $this->scopeConfig->getValue('carriers/' . $carrierCode . '/sallowspecific');
+                    $specificCountry = '';
+                    if ($allowSpecific == 1) {
+                        $specificCountry = $this->scopeConfig->getValue('carriers/' . $carrierCode . '/specificcountry');
+                    }
+                    if (empty($cost)) {
+                        $cost = '0.00';
+                    }
+                    $methods[] = ['rateId' => $code, 'methodId' => $methodCode, 'instanceId' => $carrierCode,  'name' => $carrierTitle, 'cost' => $cost, 'countryCode' => $specificCountry];
+                }
+            }
+        }
+
+        return $methods;
     }
 
     /**

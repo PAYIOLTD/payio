@@ -66,6 +66,11 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
     protected $response;
 
     /**
+     * \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+     */
+    protected $scopeConfig;
+
+    /**
      * Payment code
      *
      * @var string
@@ -86,6 +91,7 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
      * @param \Magento\Checkout\Helper\Data $checkoutData
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Framework\App\ResponseInterface $response
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         Context $context,
@@ -98,7 +104,8 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
         CartRepositoryInterface $quoteRepository,
         \Magento\Checkout\Helper\Data $checkoutData,
         \Magento\Customer\Model\Session $customerSession,
-        \Magento\Framework\App\ResponseInterface $response
+        \Magento\Framework\App\ResponseInterface $response,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
     ) {
         parent::__construct($context);
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
@@ -111,6 +118,7 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
         $this->customerSession = $customerSession;
         $this->resultJsonFactory = $resultJsonFactory;
         $this->response = $response;
+        $this->scopeConfig = $scopeConfig;
     }
 
     public function execute()
@@ -126,11 +134,15 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
             return $resultJson->setData(['message' => __('CartId not found')]);
         }
 
-        try {
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($data->orderId, 'masked_id');
-            $cartId = $quoteIdMask->getQuoteId();
-        } catch (NoSuchEntityException $exception) {
-            return $resultJson->setData(['message' => __('Quote not found')]);
+        if ($this->_getCustomerSession()->isLoggedIn()) {
+            $cartId = $data->orderId();
+        } else {
+            try {
+                $quoteIdMask = $this->quoteIdMaskFactory->create()->load($data->orderId, 'masked_id');
+                $cartId = $quoteIdMask->getQuoteId();
+            } catch (NoSuchEntityException $exception) {
+                return $resultJson->setData(['message' => __('Quote not found')]);
+            }
         }
 
         $quote = $this->_getQuote($cartId);
@@ -152,6 +164,61 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
         } else {
             if (isset($data->customerDetails) && !empty($data->customerDetails)) {
                 $customerDetails = $data->customerDetails;
+                if (isset($customerDetails->shippingPostcode) && isset($customerDetails->countryCode)) {
+                    $shippingMethods = [];
+                    $shippingMethodToUpdateQuote = [];
+                    $quote->getShippingAddress()->setCountryId($customerDetails->countryCode);
+                    $quote->getShippingAddress()->setPostcode($customerDetails->shippingPostcode);
+                    $quote->getShippingAddress()->setCollectShippingRates(true);
+                    $quote->getShippingAddress()->collectShippingRates();
+                    $rates = $quote->getShippingAddress()->getShippingRatesCollection();
+                    if (count($rates) > 0) {
+                        $shippingMethodFound = 0;
+                        foreach ($rates as $rate) {
+                            $allowSpecific = $this->scopeConfig->getValue('carriers/' . $rate->getCarrier() . '/sallowspecific');
+                            $specificCountry = '';
+                            if ($allowSpecific == 1) {
+                                $specificCountry = $this->scopeConfig->getValue('carriers/' . $rate->getCarrier() . '/specificcountry');
+                            } else {
+                                $shippingMethodFound = 1;
+                            }
+                            if ($specificCountry && strpos($specificCountry, ',') !== false) {
+                                $specificShippingMethods = explode(',', $specificCountry);
+                                if (in_array($customerDetails->countryCode, $specificShippingMethods)) {
+                                    $shippingMethodFound = 1;
+                                }
+                            } else {
+                                if ($specificCountry && $specificCountry == $customerDetails->countryCode) {
+                                    $shippingMethodFound = 1;
+                                }
+                            }
+                            if ($shippingMethodFound == 1) {
+                                $shippingMethods[] = array(
+                                    'rateId'     => $rate->getCode(),
+                                    'methodId'   => $rate->getMethod(),
+                                    'instanceId' => $rate->getCarrier(),
+                                    'name'       => $rate->getCarrierTitle(),
+                                    'cost'       => $rate->getPrice()
+                                );
+                                $shippingMethodToUpdateQuote[$rate->getCode()] = array(
+                                    'rateId'     => $rate->getCode(),
+                                    'name'       => $rate->getCarrierTitle(),
+                                    'cost'       => $rate->getPrice()
+                                );
+                            }
+                        }
+                    }
+
+                    if (!isset($customerDetails->firstName)) {
+                        if (!empty($shippingMethods)) {
+                            $temp = array_unique(array_column($shippingMethods, 'rateId'));
+                            $shippingMethodUpdated = array_intersect_key($shippingMethods, $temp);
+                            return $resultJson->setData($shippingMethodUpdated);
+                        } else {
+                            return $resultJson->setData([]);
+                        }
+                    }
+                }
 
                 if ($customerDetails->firstName) {
                     $shippingAddress->setFirstname($customerDetails->firstName);
@@ -161,16 +228,16 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
                     $shippingAddress->setLastname($customerDetails->lastName);
                     $billingAddress->setLastname($customerDetails->lastName);
                 }
-                if ($customerDetails->country) {
-                    $shippingAddress->setCountryId($customerDetails->country);
-                    $billingAddress->setCountryId($customerDetails->country);
+                if ($customerDetails->countryCode) {
+                    $shippingAddress->setCountryId($customerDetails->countryCode);
+                    $billingAddress->setCountryId($customerDetails->countryCode);
                 }
                 if ($customerDetails->email) {
                     $quote->setCustomerEmail($customerDetails->email);
                 }
                 if ($customerDetails->shippingAddress) {
                     $shippingAddress->setStreet($customerDetails->shippingAddress);
-                    $billingAddress->setStreet($customerDetails->country);
+                    $billingAddress->setStreet($customerDetails->shippingAddress);
                 }
                 if ($customerDetails->phoneNumber) {
                     $shippingAddress->setTelephone($customerDetails->phoneNumber);
@@ -178,7 +245,7 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
                 }
                 if ($customerDetails->shippingPostcode) {
                     $shippingAddress->setPostcode($customerDetails->shippingPostcode);
-                    $billingAddress->setTelephone($customerDetails->phoneNumber);
+                    $billingAddress->setPostcode($customerDetails->shippingPostcode);
                 }
                 if ($customerDetails->shippingCity) {
                     $shippingAddress->setCity($customerDetails->shippingCity);
@@ -186,19 +253,21 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
                 }
             }
 
-            if (isset($data->shipping) && !empty($data->shipping)) {
-                $shippingDetails = $data->shipping;
-                if ($shippingDetails->id) {
-                    $shippingAddress->setCollectShippingRates(true)->collectShippingRates()->setShippingMethod($shippingDetails->id);
-                    if ($shippingDetails->name) {
-                        $shippingAddress->setShippingDescription(trim($shippingDetails->name));
-                    }
-                    if ($shippingDetails->cost) {
-                        $quote->setShippingAmount($shippingDetails->cost);
-                        $quote->setBaseShippingAmount($shippingDetails->cost);
-                    }
+            if (isset($data->selectedShippingId) && !empty($data->selectedShippingId)) {
+                if (empty($shippingMethodToUpdateQuote) && !isset($shippingMethodToUpdateQuote[$data->selectedShippingId])) {
+                    return $resultJson->setData(['message' => __('Shipping method not available.')]);
                 }
+                $shippingDetails = $shippingMethodToUpdateQuote[$data->selectedShippingId];
+                $shippingAddress->setCollectShippingRates(true)->collectShippingRates()->setShippingMethod($data->selectedShippingId);
+                $shippingAddress->setShippingDescription(trim($shippingDetails['name']));
+                $shippingAddress->setShippingAmount($shippingDetails['cost']);
+                $shippingAddress->setBaseShippingAmount($shippingDetails['cost']);
             }
+        }
+
+        if (isset($data->placeOrder) && $data->placeOrder == 0 && $isActiveQuote == 1) {
+            $totals = array('totalTax' => $quote->getShippingAddress()->getTaxAmount(), 'totalAmount' => $quote->getGrandTotal() + $quote->getShippingAddress()->getShippingAmount());
+            return $resultJson->setData($totals);
         }
 
         if ($this->getCheckoutMethod() == \Magento\Checkout\Model\Type\Onepage::METHOD_GUEST) {
@@ -208,6 +277,7 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
         try {
             $checkout = $this->checkoutFactory->create();
             if ($isActiveQuote == 1) {
+                $this->quoteRepository->save($quote->collectTotals());
                 $orderId = $this->cartManager->placeOrder($quote->getId(), $payment);
             } else {
                 $orderId = $quote->getReservedOrderId();
@@ -225,6 +295,10 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
             $message = 'Order# ' . $orderId . ' placed Successfully.';
             if (isset($data->status) && !empty($data->status) && $isActiveQuote == 0) {
                 return $resultJson->setData(['message' => __('Status Updated Successfully.'), 'orderId' => $orderObj->getIncrementId()]);
+            }
+            if (isset($data->selectedShippingId) && !empty($data->selectedShippingId)) {
+                $totals = array('totalTax' => $orderObj->getTaxAmount(), 'totalAmount' => $orderObj->getGrandTotal(), 'publicOrderReference' => $orderObj->getIncrementId());
+                return $resultJson->setData($totals);
             }
             return $resultJson->setData(['message' => $message, 'orderId' => $orderObj->getIncrementId()]);
         } catch (NoSuchEntityException $exception) {

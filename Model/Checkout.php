@@ -100,7 +100,7 @@ class Checkout
                     $comment = 'Order is on hold payment is pending';
                 }
                 if ($orderStatus == 'COMPLETED') {
-                    $orderStatus = \Magento\Sales\Model\Order::STATE_COMPLETE;
+                    $orderStatus = \Magento\Sales\Model\Order::STATE_PROCESSING;
                     $comment = 'Captured Amount ' . $order->getGrandTotal();
                     $this->invoiceOrder->execute($order->getId());
                 }

@@ -11,7 +11,6 @@ define(
         const basePath = url.build('');
         var sections = ['cart'];
         var addressObj         = '';
-        var shippingMethod     = '';
         var totals             = '';
         var cartObj            = '';
         var cartId             = '';
@@ -46,7 +45,6 @@ define(
                     success: function (response) {
                         totals         = response.totalsData;
                         cartObj        = response.quoteItemData;
-                        shippingMethod = response.activeShippingMethods;
                         addressObj     = response.isCustomerLoggedIn ? response.customerData : response.shippingAddressFromData;
                         currencyCode   = response.currencyCode;
                         cartTax        = response.cartTax;
@@ -100,18 +98,18 @@ define(
                     sessionData["lineItems"]  = cart;
 
                     const getShippingMethods   = [];
-                    shippingMethod.forEach(function(shippingitem) {
-                        const getShippingItem = {
-                            "rateId"      : shippingitem.value,
-                            "methodId"    : shippingitem.value,
-                            "instanceId"  : shippingitem.value,
-                            "name"        : shippingitem.label,
-                            "cost"        : shippingitem.cost,
-                            "tax"         : totals.shipping_tax_amount,
-                            "countryCode" : shippingitem.countryCode
-                        };
-                        getShippingMethods.push(getShippingItem);
-                    });
+                        // shippingMethod.forEach(function(shippingitem) {
+                        //     const getShippingItem = {
+                        //         "rateId"      : shippingitem.value,
+                        //         "methodId"    : shippingitem.value,
+                        //         "instanceId"  : shippingitem.value,
+                        //         "name"        : shippingitem.label,
+                        //         "cost"        : shippingitem.cost,
+                        //         "tax"         : totals.shipping_tax_amount,
+                        //         "countryCode" : shippingitem.countryCode
+                        //     };
+                        //     getShippingMethods.push(getShippingItem);
+                        // });
 
                     sessionData["shippingMethods"] = getShippingMethods;
                     $.ajax({

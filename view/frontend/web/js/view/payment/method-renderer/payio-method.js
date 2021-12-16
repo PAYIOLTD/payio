@@ -21,9 +21,11 @@ define(
             },
             async initiateCheckoutSession() {
                 //construct POST data
-                let sessionData = [];
+                let sessionData = []; 
+                const shippingMethod = quote.shippingMethod();
                 sessionData                     = this.getCustomerInfo(cartId);
                 sessionData["lineItems"]        = this.getCartData();
+                sessionData["shippingType"]     = shippingMethod.carrier_code+'_'+shippingMethod.method_code;
                 sessionData["shippingMethods"]  = this.getShippingMethods();
                 // create encrypted request path
                 this.sendRequest('POST', config.apiTransactionPath, sessionData);
@@ -96,19 +98,28 @@ define(
                 });
                 return cart;
             },
+
             getShippingMethods() {
-                const shippingMethod = quote.shippingMethod();
-                const totals = quote.totals();
-                return [
-                    {
-                        'rateId'     : shippingMethod.carrier_code+'_'+shippingMethod.method_code,
-                        "methodId"   : shippingMethod.method_code,
-                        "instanceId" : shippingMethod.carrier_code,
-                        "name"       : shippingMethod.carrier_title,
-                        "cost"       : shippingMethod.amount,
-                        "tax"        : totals.shipping_tax_amount
+                const countryId = quote.shippingAddress().countryId;
+                const getShippingMethods = [];
+                $.each(config.shippingMethods, function(index, value){
+                    var countryCode = value.countryCode;
+                    if(countryCode != ''){
+                        if(countryCode.indexOf(countryId) < 0){
+                           return true;
+                        }
                     }
-                ]
+                    const getShippingItem = {
+                         "rateId"      : value.rateId,
+                         "methodId"    : value.methodId,
+                         "instanceId"  : value.instanceId,
+                         "name"        : value.name,
+                         "cost"        : value.cost,
+                         "countryCode" : value.countryCode
+                    };
+                    getShippingMethods.push(getShippingItem);
+                });
+                return getShippingMethods;
             }
         });
     }

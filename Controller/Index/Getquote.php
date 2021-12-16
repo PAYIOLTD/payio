@@ -103,16 +103,6 @@ class Getquote extends Action
      * @var ShippingMethodManager
      */
     protected $shippingMethodManager;
-    
-    /**
-     * \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-     */
-    protected $scopeConfig;
-
-    /**
-     * @var \Magento\Shipping\Model\Config $shipconfig
-     */
-    protected $shipconfig;
 
     /**
      * @var PayioHelper
@@ -135,8 +125,6 @@ class Getquote extends Action
      * @param CartTotalRepositoryInterface $cartTotalRepository
      * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param AddressMetadataInterface $addressMetadata
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Shipping\Model\Config $shipconfig
      * @param PayioHelper $payioHelper
      * @codeCoverageIgnore
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
@@ -156,8 +144,6 @@ class Getquote extends Action
         \Magento\Store\Model\StoreManagerInterface $storeManager,
         QuoteIdMaskFactory $quoteIdMaskFactory,
         ShippingMethodManager $shippingMethodManager,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Shipping\Model\Config $shipconfig,
         PayioHelper $payioHelper,
         AddressMetadataInterface $addressMetadata = null
     ) {
@@ -175,8 +161,6 @@ class Getquote extends Action
         $this->storeManager = $storeManager;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->shippingMethodManager = $shippingMethodManager;
-        $this->shipconfig = $shipconfig;
-        $this->scopeConfig = $scopeConfig;
         $this->payioHelper = $payioHelper;
         $this->addressMetadata = $addressMetadata ?: ObjectManager::getInstance()->get(AddressMetadataInterface::class);
     }
@@ -186,11 +170,15 @@ class Getquote extends Action
         $output = [];
         $cartId = '';
         $maskedHashId = $this->getRequest()->getParams('maskid');
-        try {
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($maskedHashId, 'masked_id');
-            $cartId = $quoteIdMask->getQuoteId();
-        } catch (NoSuchEntityException $exception) {
-            return null;
+        if ($this->isCustomerLoggedIn()) {
+            $cartId = $maskedHashId['maskid'];
+        } else {
+            try {
+                $quoteIdMask = $this->quoteIdMaskFactory->create()->load($maskedHashId, 'masked_id');
+                $cartId = $quoteIdMask->getQuoteId();
+            } catch (NoSuchEntityException $exception) {
+                return null;
+            }
         }
 
         if ($cartId) {
@@ -215,7 +203,6 @@ class Getquote extends Action
             }
             $output['totalsData'] = $this->getTotalsData($quoteId);
             $output['currencyCode'] = $this->storeManager->getStore()->getCurrentCurrencyCode();
-            $output['activeShippingMethods'] = $this->getShippingMethods();
             $output['cartTax'] = $this->payioHelper->getUKTaxRate();
         }
 
@@ -327,12 +314,12 @@ class Getquote extends Action
             ->renderArray($builtOutputAddressData);
     }
 
-     /**
-      * Filter not visible on storefront custom attributes.
-      *
-      * @param array $attributes
-      * @return array
-      */
+    /**
+     * Filter not visible on storefront custom attributes.
+     *
+     * @param array $attributes
+     * @return array
+     */
     protected function filterNotVisibleAttributes(array $attributes)
     {
         $attributesMetadata = $this->addressMetadata->getAllAttributesMetadata();
@@ -345,12 +332,12 @@ class Getquote extends Action
         return $this->setLabelsToAttributes($attributes);
     }
 
-     /**
-      * Check if customer is logged in.
-      *
-      * @return bool
-      * @codeCoverageIgnore
-      */
+    /**
+     * Check if customer is logged in.
+     *
+     * @return bool
+     * @codeCoverageIgnore
+     */
     protected function isCustomerLoggedIn()
     {
         return (bool)$this->httpContext->getValue(CustomerContext::CONTEXT_AUTH);
@@ -437,37 +424,5 @@ class Getquote extends Action
             $shippingMethodData = null;
         }
         return $shippingMethodData;
-    }
-
-    /**
-     * Retrieve all shipping method.
-     *
-     * @return array
-     */
-    public function getShippingMethods()
-    {
-        $activeCarriers = $this->shipconfig->getActiveCarriers();
-        $methods = [];
-        foreach ($activeCarriers as $carrierCode => $carrierModel) {
-
-            if ($carrierMethods = $carrierModel->getAllowedMethods()) {
-                foreach ($carrierMethods as $methodCode => $method) {
-                    $code = $carrierCode . '_' . $methodCode;
-                    $carrierTitle = $this->scopeConfig->getValue('carriers/'.$carrierCode.'/title');
-                    $cost = $this->scopeConfig->getValue('carriers/'.$carrierCode.'/price');
-                    $allowSpecific = $this->scopeConfig->getValue('carriers/'.$carrierCode.'/sallowspecific');
-                    $specificCountry = '';
-                    if ($allowSpecific == 1) {
-                        $specificCountry = $this->scopeConfig->getValue('carriers/'.$carrierCode.'/specificcountry');
-                    }
-                    if (empty($cost)) {
-                        $cost = '0.00';
-                    }
-                    $methods[] = ['value' => $code, 'label' => $carrierTitle , 'cost' => $cost, 'countryCode' => $specificCountry];
-                }
-            }
-        }
-
-        return $methods;
     }
 }

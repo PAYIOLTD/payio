@@ -23,7 +23,7 @@ class CustomConfigProvider implements ConfigProviderInterface
     protected $helper;
 
     /**
-     * Payment ConfigProvider constructor.
+     * Payment ConfigProvider constructor. 
      *
      * @param \Magento\Payment\Helper\Data $paymentHelper
      */
@@ -51,7 +51,8 @@ class CustomConfigProvider implements ConfigProviderInterface
                     'checkoutUrl' => $this->helper->getCheckoutUrl(),
                     'paymentSuccessUrl' => $this->helper->getPaymentSuccessUrl(),
                     'currency' => $this->helper->getCurrentCurrencyCode(),
-                    'cartTax' => $this->helper->getUKTaxRate()
+                    'cartTax' => $this->helper->getUKTaxRate(),
+                    'shippingMethods' => $this->helper->getActiveShippingMethods()
                 ]
             ]
         ];
