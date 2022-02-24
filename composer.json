@@ -1,14 +1,20 @@
 {
   "name": "payioltd/payio",
   "description": "Accept online payments in Magento 2 using the Pay iO payment gateway.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "magento2-module",
+  "keywords": [
+    "Magento 2",
+    "Magento 2 Payments",
+    "Magento 2 Payment Method",
+    "Magento 2 extension free"
+],
   "license": [
     "OSL-3.0",
     "AFL-3.0"
   ],
   "require": {
-    "php": "~7.3.0|~7.4.0"
+    "php": "~7.2.0||~7.3.0||~7.4.0"
   },
   "autoload": {
     "files": [
@@ -17,5 +23,12 @@
     "psr-4": {
       "PayioLtd\\Payio\\": ""
     }
-  }
+  },
+  "authors": [
+    {
+        "name": "Jamie Laughton",
+        "email": "jamie.laughton@nuom.co.uk",
+        "role": "Developer"
+    }
+  ]
 }

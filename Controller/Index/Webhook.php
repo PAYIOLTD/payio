@@ -134,8 +134,8 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
             return $resultJson->setData(['message' => __('CartId not found')]);
         }
 
-        if ($this->_getCustomerSession()->isLoggedIn()) {
-            $cartId = $data->orderId();
+        if (is_numeric($data->orderId)) {
+            $cartId = $data->orderId;
         } else {
             try {
                 $quoteIdMask = $this->quoteIdMaskFactory->create()->load($data->orderId, 'masked_id');
@@ -146,6 +146,9 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
         }
 
         $quote = $this->_getQuote($cartId);
+        if (!$quote->getId()) {
+            return $resultJson->setData(['message' => __('Quote not found')]);
+        }
         $isActiveQuote = $quote->getIsActive();
         $payment = $quote->getPayment();
         $quote->setPaymentMethod($this->code);
@@ -153,12 +156,16 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
         $shippingAddress = $quote->getShippingAddress();
         $billingAddress  = $quote->getBillingAddress();
 
-        if (!$quote->getId()) {
-            return $resultJson->setData(['message' => __('Quote not found')]);
-        }
-
         $orderStatus = '';
         $orderStatusError = 1;
+        if (!empty($orderStatus)) {
+            if ($orderStatus == 'COMPLETED' || $orderStatus == 'PENDING') {
+                $orderStatusError = 0;
+            }
+            if ($orderStatusError == 1) {
+                return $resultJson->setData(['message' => __('Invalid order status found.')]);
+            }
+        }
         if (isset($data->status) && !empty($data->status)) {
             $orderStatus = $data->status;
         } else {
@@ -219,7 +226,6 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
                         }
                     }
                 }
-
                 if ($customerDetails->firstName) {
                     $shippingAddress->setFirstname($customerDetails->firstName);
                     $billingAddress->setFirstname($customerDetails->firstName);
@@ -252,7 +258,6 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
                     $billingAddress->setCity($customerDetails->shippingCity);
                 }
             }
-
             if (isset($data->selectedShippingId) && !empty($data->selectedShippingId)) {
                 if (empty($shippingMethodToUpdateQuote) && !isset($shippingMethodToUpdateQuote[$data->selectedShippingId])) {
                     return $resultJson->setData(['message' => __('Shipping method not available.')]);
@@ -282,25 +287,17 @@ class Webhook extends \Magento\Framework\App\Action\Action implements HttpPostAc
             } else {
                 $orderId = $quote->getReservedOrderId();
             }
-            if (!empty($orderStatus)) {
-                if ($orderStatus == 'COMPLETED' || $orderStatus == 'PENDING') {
-                    $orderStatusError = 0;
-                }
-                if ($orderStatusError == 1) {
-                    return $resultJson->setData(['message' => __('Invalid order status found.')]);
-                }
-            }
 
             $orderObj = $checkout->process($orderId, $orderStatus, $isActiveQuote);
             $message = 'Order# ' . $orderId . ' placed Successfully.';
             if (isset($data->status) && !empty($data->status) && $isActiveQuote == 0) {
-                return $resultJson->setData(['message' => __('Status Updated Successfully.'), 'orderId' => $orderObj->getIncrementId()]);
+                return $resultJson->setData(['message' => __('Status Updated Successfully.'), 'publicOrderReference' => $orderObj->getIncrementId()]);
             }
             if (isset($data->selectedShippingId) && !empty($data->selectedShippingId)) {
                 $totals = array('totalTax' => $orderObj->getTaxAmount(), 'totalAmount' => $orderObj->getGrandTotal(), 'publicOrderReference' => $orderObj->getIncrementId());
                 return $resultJson->setData($totals);
             }
-            return $resultJson->setData(['message' => $message, 'orderId' => $orderObj->getIncrementId()]);
+            return $resultJson->setData(['message' => $message, 'publicOrderReference' => $orderObj->getIncrementId()]);
         } catch (NoSuchEntityException $exception) {
             return $resultJson->setData(['message' => __('Error while placing an order.')]);
         }

@@ -5,7 +5,7 @@
             <payio>
                 <model>PayioLtd\Payio\Model\Payio</model>
                 <title>Pay iO</title>
-                <instructions>Pay iO pay by bank integration</instructions>
+                <instructions>Pay iO PAY WITH BANK is the future of digital payments. Complete your payment using your online bank app, no cards or sign up required.</instructions>
                 <sort_order>1</sort_order>
                 <order_status>pending</order_status>
                 <payment_action>sale</payment_action>
