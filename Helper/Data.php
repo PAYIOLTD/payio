@@ -13,9 +13,9 @@ class Data extends AbstractHelper
      */
     const PAYMENT_SUCCESS_URL = 'checkout/onepage/success/';
     const CHECKOUT_URL        = 'checkout';
-    const GATEWAY_URL         = 'https://payio-test.nw.r.appspot.com/gateway';
-    const TRANSACTION_PATH    = 'https://payio-test.nw.r.appspot.com/api/transaction/create';
-    const API_SETTING_PATH    = 'https://payio-test.nw.r.appspot.com/api/merchant/setMerchantSettings';
+    const GATEWAY_URL         = 'https://secure.payio.co.uk/gateway';
+    const TRANSACTION_PATH    = 'https://secure.payio.co.uk/api/transaction/create';
+    const API_SETTING_PATH    = 'https://secure.payio.co.uk/api/merchant/setMerchantSettings';
     /**#@-*/
 
     /**
